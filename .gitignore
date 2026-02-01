@@ -1,0 +1,19 @@
+node_modules/
+dist/
+.vite/
+.DS_Store
+*.log
+
+# local env files
+.env
+.env.*
+
+# editors
+.vscode/
+.idea/
+
+# EasyBeans Issue Tracker
+eb/
+
+# misc
+*.tgz
