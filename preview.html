@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flip Chip Trainer - Eurorack Wireframe</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f4f4f2;
+        --ink: #1b1b1b;
+        --line: #2c2c2c;
+        --panel: #e7e4dc;
+        --slot: #ffffff;
+        --accent: #b5b1a6;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Helvetica Neue", Arial, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+      }
+
+      .page {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .top-region {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1fr;
+        gap: 16px;
+        padding: 20px 24px 16px;
+        border-bottom: 3px solid var(--line);
+        background: var(--panel);
+      }
+
+      .header {
+        border: 3px solid var(--line);
+        padding: 16px;
+        background: #fff;
+      }
+
+      .front-panel {
+        border: 3px solid var(--line);
+        padding: 16px;
+        background: #fff;
+      }
+
+      .header h1 {
+        margin: 0 0 8px;
+        font-size: 22px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .header .sub {
+        font-size: 12px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+      }
+
+      .indicator-row {
+        display: flex;
+        gap: 10px;
+        padding: 8px 0 0;
+        flex-wrap: wrap;
+      }
+
+      .indicator-group {
+        display: flex;
+        gap: 6px;
+        border: 2px solid var(--line);
+        padding: 6px;
+        background: #f7f6f2;
+      }
+
+      .indicator-group.dim {
+        background: #e5e1d6;
+      }
+
+      .indicator {
+        display: inline-block;
+        border: 2px solid var(--line);
+        width: 18px;
+        height: 18px;
+        background: #fff;
+      }
+
+      .front-panel .row {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+
+      .pill {
+        border: 2px solid var(--line);
+        padding: 6px 10px;
+        font-size: 12px;
+        text-transform: uppercase;
+        background: var(--slot);
+      }
+
+      .card-title {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        margin-bottom: 10px;
+      }
+
+      .panel-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .bottom-region {
+        flex: 1;
+        padding: 24px;
+        display: grid;
+        grid-template-columns: repeat(12, minmax(56px, 1fr));
+        gap: 14px;
+        align-items: stretch;
+      }
+
+      .slot {
+        border: 3px solid var(--line);
+        background: var(--slot);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 8px;
+        min-height: 360px;
+        position: relative;
+      }
+
+      .slot .label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+      }
+
+      .slot .chip {
+        border: 2px dashed var(--accent);
+        flex: 1;
+        margin: 10px 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        text-transform: uppercase;
+      }
+
+      .slot .pins {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+        font-size: 10px;
+      }
+
+      .pin {
+        border: 1px solid var(--line);
+        padding: 4px;
+        text-align: center;
+        background: #fafafa;
+      }
+
+      .slot.double {
+        grid-column: span 2;
+        background: #fffef7;
+      }
+
+      .slot .sublabel {
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #6b6b6b;
+        margin-top: 4px;
+      }
+
+      .legend {
+        padding: 16px 24px 24px;
+        font-size: 12px;
+        color: #555;
+      }
+
+      .legend span {
+        display: inline-block;
+        margin-right: 16px;
+      }
+
+      @media (max-width: 900px) {
+        .top-region {
+          grid-template-columns: 1fr;
+        }
+
+        .bottom-region {
+          grid-template-columns: repeat(6, minmax(56px, 1fr));
+        }
+      }
+
+      @media (max-width: 600px) {
+        .bottom-region {
+          grid-template-columns: repeat(3, minmax(56px, 1fr));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <section class="top-region">
+        <div class="header">
+          <div class="sub">Digital Equipment Corporation</div>
+          <h1>Flip Chip Trainer</h1>
+          <div class="sub">Eurorack-style layout wireframe</div>
+          <div class="indicator-row" aria-label="Logic indicators">
+            <div class="indicator-group">
+              <span class="indicator"></span>
+              <span class="indicator"></span>
+              <span class="indicator"></span>
+            </div>
+            <div class="indicator-group dim">
+              <span class="indicator"></span>
+              <span class="indicator"></span>
+              <span class="indicator"></span>
+            </div>
+            <div class="indicator-group">
+              <span class="indicator"></span>
+              <span class="indicator"></span>
+              <span class="indicator"></span>
+            </div>
+            <div class="indicator-group dim">
+              <span class="indicator"></span>
+              <span class="indicator"></span>
+              <span class="indicator"></span>
+            </div>
+          </div>
+        </div>
+        <div class="front-panel">
+          <div class="card-title">Power</div>
+          <div class="panel-grid">
+            <div class="pill">Rails</div>
+            <div class="pill">Switch</div>
+            <div class="pill">Lamp</div>
+            <div class="pill">Fuse</div>
+          </div>
+        </div>
+        <div class="front-panel">
+          <div class="card-title">Clock</div>
+          <div class="panel-grid">
+            <div class="pill">Rate</div>
+            <div class="pill">Mode</div>
+            <div class="pill">Ticks</div>
+            <div class="pill">Reset</div>
+          </div>
+        </div>
+        <div class="front-panel">
+          <div class="card-title">Run / Halt</div>
+          <div class="panel-grid">
+            <div class="pill">Run</div>
+            <div class="pill">Halt</div>
+            <div class="pill">Step</div>
+            <div class="pill">Cycle</div>
+          </div>
+        </div>
+      </section>
+      <section class="bottom-region">
+        <div class="slot">
+          <div class="label">Slot 1</div>
+          <div class="chip">1U</div>
+          <div class="pins">
+            <div class="pin">J</div>
+            <div class="pin">K</div>
+            <div class="pin">CLK</div>
+            <div class="pin">Q</div>
+          </div>
+        </div>
+        <div class="slot double">
+          <div class="label">Slot 2–3</div>
+          <div class="sublabel">M113 (2 slots)</div>
+          <div class="chip">Flip Chip</div>
+          <div class="pins">
+            <div class="pin">J1</div>
+            <div class="pin">K1</div>
+            <div class="pin">CLK1</div>
+            <div class="pin">Q1</div>
+            <div class="pin">J2</div>
+            <div class="pin">K2</div>
+            <div class="pin">CLK2</div>
+            <div class="pin">Q2</div>
+          </div>
+        </div>
+        <div class="slot">
+          <div class="label">Slot 4</div>
+          <div class="chip">1U</div>
+          <div class="pins">
+            <div class="pin">J</div>
+            <div class="pin">K</div>
+            <div class="pin">CLK</div>
+            <div class="pin">Q</div>
+          </div>
+        </div>
+        <div class="slot">
+          <div class="label">Slot 5</div>
+          <div class="chip">1U</div>
+          <div class="pins">
+            <div class="pin">J</div>
+            <div class="pin">K</div>
+            <div class="pin">CLK</div>
+            <div class="pin">Q</div>
+          </div>
+        </div>
+        <div class="slot">
+          <div class="label">Slot 6</div>
+          <div class="chip">1U</div>
+          <div class="pins">
+            <div class="pin">J</div>
+            <div class="pin">K</div>
+            <div class="pin">CLK</div>
+            <div class="pin">Q</div>
+          </div>
+        </div>
+        <div class="slot">
+          <div class="label">Slot 7</div>
+          <div class="chip">1U</div>
+          <div class="pins">
+            <div class="pin">J</div>
+            <div class="pin">K</div>
+            <div class="pin">CLK</div>
+            <div class="pin">Q</div>
+          </div>
+        </div>
+        <div class="slot">
+          <div class="label">Slot 8</div>
+          <div class="chip">1U</div>
+          <div class="pins">
+            <div class="pin">J</div>
+            <div class="pin">K</div>
+            <div class="pin">CLK</div>
+            <div class="pin">Q</div>
+          </div>
+        </div>
+        <div class="slot">
+          <div class="label">Slot 9</div>
+          <div class="chip">1U</div>
+          <div class="pins">
+            <div class="pin">J</div>
+            <div class="pin">K</div>
+            <div class="pin">CLK</div>
+            <div class="pin">Q</div>
+          </div>
+        </div>
+        <div class="slot">
+          <div class="label">Slot 10</div>
+          <div class="chip">1U</div>
+          <div class="pins">
+            <div class="pin">J</div>
+            <div class="pin">K</div>
+            <div class="pin">CLK</div>
+            <div class="pin">Q</div>
+          </div>
+        </div>
+        <div class="slot">
+          <div class="label">Slot 11</div>
+          <div class="chip">1U</div>
+          <div class="pins">
+            <div class="pin">J</div>
+            <div class="pin">K</div>
+            <div class="pin">CLK</div>
+            <div class="pin">Q</div>
+          </div>
+        </div>
+        <div class="slot">
+          <div class="label">Slot 12</div>
+          <div class="chip">1U</div>
+          <div class="pins">
+            <div class="pin">J</div>
+            <div class="pin">K</div>
+            <div class="pin">CLK</div>
+            <div class="pin">Q</div>
+          </div>
+        </div>
+      </section>
+
+      <div class="legend">
+        <span>Top: header + front panel</span>
+        <span>Bottom: vertical slots aligned to grid</span>
+        <span>M113 occupies two slots (ex: 2–3)</span>
+      </div>
+    </div>
+  </body>
+</html>
