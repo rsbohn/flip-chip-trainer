@@ -2,6 +2,10 @@
 
 Get the Vite + React + Tailwind app running locally in minutes.
 
+## Live site
+
+`https://rsbohn.github.io/flip-chip-trainer/`
+
 ## TLDR
 
 ```bash
