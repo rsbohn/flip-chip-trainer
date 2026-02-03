@@ -115,7 +115,7 @@ const FlipChipSimulator = () => {
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    ctx.strokeStyle = '#d97706';
+    ctx.strokeStyle = '#9b6a1f';
     ctx.lineWidth = 2;
 
     wires.forEach((wire) => {
@@ -132,171 +132,140 @@ const FlipChipSimulator = () => {
   }, [wires]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-black text-gray-100 font-mono">
+    <div className="flex flex-col min-h-screen bg-[#f2e7d3] text-[#3b3325] font-mono">
       {/* Top Panel */}
-      <section className="border-b-4 border-black bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 p-6 shadow-2xl">
+      <section className="border-b-4 border-[#8b7a5e] bg-gradient-to-b from-[#ead9b8] via-[#dfcca8] to-[#d2bf9a] p-6 shadow-[0_10px_26px_rgba(60,45,20,0.25)]">
         <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
-          <div className="border-2 border-black bg-gradient-to-b from-gray-900 to-gray-950 p-4 shadow-inner">
-            <div className="text-[10px] font-bold tracking-[0.3em] text-gray-400 mb-2 uppercase">
-              DIGITAL EQUIPMENT CORPORATION
+          <div className="border-2 border-[#8b7a5e] bg-gradient-to-b from-[#efe2c7] to-[#e1cea8] p-4 shadow-inner">
+            <div className="text-[10px] font-bold tracking-[0.3em] text-[#6e5e45] mb-2 uppercase">
+              BODGE INDUSTRIAL LTD
             </div>
             <div
-              className="text-2xl font-bold tracking-wider text-gray-300"
-              style={{ fontFamily: 'serif', textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
+              className="text-2xl font-bold tracking-wider text-[#3b3325]"
+              style={{ fontFamily: 'serif', textShadow: '0 1px 0 rgba(255,255,255,0.35)' }}
             >
               Flip Chip Trainer
             </div>
-            <div className="text-[10px] font-bold tracking-[0.35em] text-gray-500 mt-2 uppercase">
-              Eurorack layout wireframe
-            </div>
             <div className="mt-4 flex flex-wrap gap-2">
-              {indicators.map((state, i) => {
-                const installedCards = slots.slice(1).filter((slot) => slot !== null).length;
-                const bitCount = installedCards * 2;
-                const isConnected = i < bitCount;
+              {Array.from({ length: 4 }, (_, groupIndex) => {
+                const groupStart = indicators.length - 1 - groupIndex * 3;
+                const groupBg = groupIndex % 2 === 0 ? 'bg-[#e7d5b2]' : 'bg-[#d8c5a1]';
                 return (
                   <div
-                    key={i}
-                    className="flex flex-col items-center gap-1 border border-gray-800 bg-black/70 px-2 py-2"
-                    onMouseEnter={() => setHoveredBit(i)}
-                    onMouseLeave={() => setHoveredBit(null)}
+                    key={groupIndex}
+                    className={`flex gap-2 rounded border border-[#9b8766] px-2 py-2 ${groupBg}`}
                   >
-                    <div
-                      className={`w-3 h-3 rounded-full border ${
-                        powerOn && state
-                          ? 'bg-red-700 border-red-600 shadow-lg shadow-red-700/80'
-                          : 'bg-gray-900 border-gray-700'
-                      } ${!isConnected ? 'opacity-50' : ''}`}
-                    />
-                    <span className="text-[10px] text-gray-600 font-mono">{i}</span>
+                    {Array.from({ length: 3 }, (_, offset) => {
+                      const bitIndex = groupStart - offset;
+                      const state = indicators[bitIndex];
+                      const installedCards = slots.slice(1).filter((slot) => slot !== null).length;
+                      const bitCount = installedCards * 2;
+                      const isConnected = bitIndex < bitCount;
+                      return (
+                        <div
+                          key={bitIndex}
+                          className="flex flex-col items-center gap-1"
+                          onMouseEnter={() => setHoveredBit(bitIndex)}
+                          onMouseLeave={() => setHoveredBit(null)}
+                        >
+                          <div
+                            className={`w-3 h-3 rounded-full border ${
+                              powerOn && state
+                                ? 'bg-[#b14a2b] border-[#9b3c24] shadow-[0_0_8px_rgba(177,74,43,0.6)]'
+                                : 'bg-[#c9b898] border-[#8b7a5e]'
+                            } ${!isConnected ? 'opacity-50' : ''}`}
+                          />
+                          <span className="text-[10px] text-[#6e5e45] font-mono">{bitIndex}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 );
               })}
             </div>
           </div>
 
-          <div className="flex flex-col gap-4">
-            {/* Power Card */}
-            <div className="border-2 border-black bg-gradient-to-b from-gray-900 to-gray-950 p-3 shadow-inner">
-              <div className="text-[10px] font-bold tracking-[0.35em] text-gray-500 mb-3 uppercase">Power</div>
-              <div className="flex flex-nowrap gap-2 overflow-x-auto">
-                <div className="border border-gray-800 rounded bg-black/60 p-2 flex-1 min-w-[120px]">
-                  <div className="text-[10px] text-gray-500 uppercase tracking-[0.2em] mb-2">Switch</div>
-                  <button
-                    onClick={handlePowerToggle}
-                    className={`flex items-center justify-center gap-1 px-2 py-2 rounded font-bold text-[10px] tracking-wide shadow-lg w-full ${
-                      powerOn
-                        ? 'bg-red-800 hover:bg-red-900 border border-red-900'
-                        : 'bg-gray-700 hover:bg-gray-600 border border-gray-800'
-                    }`}
-                  >
-                    <Power size={14} />
-                    {powerOn ? 'OFF' : 'ON'}
-                  </button>
-                </div>
-                <div className="border border-gray-800 rounded bg-black/60 p-2 flex-1 min-w-[120px]">
-                  <div className="text-[10px] text-gray-500 uppercase tracking-[0.2em] mb-2">Lamp</div>
-                  <div className="flex items-center gap-2">
+          <div className="border-2 border-[#8b7a5e] bg-gradient-to-b from-[#efe2c7] to-[#e1cea8] p-3 shadow-inner">
+            <div className="text-[10px] font-bold tracking-[0.35em] text-[#6e5e45] mb-3 uppercase">
+              Power / Run
+            </div>
+            <div className="flex flex-nowrap gap-2 overflow-x-auto">
+              <div className="border border-[#9b8766] rounded bg-[#ead9b8] p-2 flex-1 min-w-[120px]">
+                <div className="text-[10px] text-[#6e5e45] uppercase tracking-[0.2em] mb-2">Mains</div>
+                <button
+                  onClick={handlePowerToggle}
+                  className={`flex items-center justify-center gap-1 px-2 py-2 rounded font-bold text-[10px] tracking-wide shadow-lg w-full ${
+                    powerOn
+                      ? 'bg-[#a53d22] hover:bg-[#8f341d] border border-[#7a2e1a] text-[#f7efe2]'
+                      : 'bg-[#c8b695] hover:bg-[#b9a47f] border border-[#8b7a5e] text-[#3b3325]'
+                  }`}
+                >
+                  <Power size={14} />
+                  {powerOn ? 'OFF' : 'ON'}
+                </button>
+              </div>
+              <div className="border border-[#9b8766] rounded bg-[#ead9b8] p-2 flex-1 min-w-[120px]">
+                <div className="text-[10px] text-[#6e5e45] uppercase tracking-[0.2em] mb-2">Run</div>
+                <button
+                  onClick={handleRunHalt}
+                  disabled={!powerOn}
+                  className={`flex items-center justify-center gap-1 px-2 py-2 rounded font-bold text-[10px] tracking-wide shadow-lg w-full ${
+                    !powerOn
+                      ? 'bg-[#c8b695] border border-[#8b7a5e] cursor-not-allowed opacity-60 text-[#3b3325]'
+                      : running
+                        ? 'bg-[#d08a2b] hover:bg-[#b67524] border border-[#8f5f1e] text-[#3b3325]'
+                        : 'bg-[#c8b695] hover:bg-[#b9a47f] border border-[#8b7a5e] text-[#3b3325]'
+                  }`}
+                >
+                  {running ? <Square size={14} /> : <Play size={14} />}
+                  {running ? 'HALT' : 'RUN'}
+                </button>
+              </div>
+              <div className="border border-[#9b8766] rounded bg-[#ead9b8] p-2 flex-1 min-w-[180px]">
+                <div className="text-[10px] text-[#6e5e45] uppercase tracking-[0.2em] mb-2">Power</div>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex flex-col items-center gap-1">
                     <div
                       className={`w-4 h-4 rounded-full border ${
                         powerOn
-                          ? 'bg-amber-500 border-amber-400 shadow-lg shadow-amber-500/70'
-                          : 'bg-gray-800 border-gray-700'
+                          ? 'bg-[#c7862b] border-[#9b6a1f] shadow-[0_0_8px_rgba(199,134,43,0.6)]'
+                          : 'bg-[#c9b898] border-[#8b7a5e]'
                       }`}
                     />
-                    <span className="text-[10px] text-gray-500 font-mono">{powerOn ? 'LIVE' : 'OFF'}</span>
+                    <span className="text-[10px] text-[#6e5e45] font-mono">{powerOn ? 'LIVE' : 'OFF'}</span>
+                    <span className="rounded border border-[#9b8766] px-1 text-[10px] text-[#7a6b52] font-mono">
+                      AC OK
+                    </span>
                   </div>
-                  <div className="mt-2 text-[10px] text-gray-600 font-mono">AC OK</div>
-                </div>
-                <div className="border border-gray-800 rounded bg-black/60 p-2 flex-1 min-w-[120px]">
-                  <div className="text-[10px] text-gray-500 uppercase tracking-[0.2em] mb-2">Rails</div>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={`w-3 h-3 rounded-full border ${
-                          powerOn
-                            ? 'bg-amber-600 border-amber-500 shadow-lg shadow-amber-600/50'
-                            : 'bg-gray-800 border-gray-700'
-                        }`}
-                      />
-                      <span className="text-[10px] text-gray-500 font-mono">+10V</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={`w-3 h-3 rounded-full border ${
-                          powerOn
-                            ? 'bg-amber-600 border-amber-500 shadow-lg shadow-amber-600/50'
-                            : 'bg-gray-800 border-gray-700'
-                        }`}
-                      />
-                      <span className="text-[10px] text-gray-500 font-mono">-15V</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={`w-3 h-3 rounded-full border ${
-                          powerOn
-                            ? 'bg-amber-600 border-amber-500 shadow-lg shadow-amber-600/50'
-                            : 'bg-gray-800 border-gray-700'
-                        }`}
-                      />
-                      <span className="text-[10px] text-gray-500 font-mono">GND</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="border border-gray-800 rounded bg-black/60 p-2 flex-1 min-w-[120px]">
-                  <div className="text-[10px] text-gray-500 uppercase tracking-[0.2em] mb-2">Fuse</div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-gray-500 font-mono">F1</span>
+                  <div className="flex flex-col items-center gap-1">
                     <div
                       className={`w-3 h-3 rounded-full border ${
                         powerOn
-                          ? 'bg-emerald-500 border-emerald-400 shadow-lg shadow-emerald-500/60'
-                          : 'bg-gray-800 border-gray-700'
+                          ? 'bg-[#c7862b] border-[#9b6a1f] shadow-[0_0_8px_rgba(199,134,43,0.5)]'
+                          : 'bg-[#c9b898] border-[#8b7a5e]'
                       }`}
                     />
+                    <span className="text-[10px] text-[#6e5e45] font-mono">+10V</span>
                   </div>
-                  <div className="mt-2 text-[10px] text-gray-600 font-mono">{powerOn ? 'OK' : 'STANDBY'}</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Run / Halt Card */}
-            <div className="border-2 border-black bg-gradient-to-b from-gray-900 to-gray-950 p-3 shadow-inner">
-              <div className="text-[10px] font-bold tracking-[0.35em] text-gray-500 mb-3 uppercase">
-                Run / Halt
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <div className="border border-gray-800 rounded bg-black/60 p-2 flex-1 min-w-[140px]">
-                  <div className="text-[10px] text-gray-500 uppercase tracking-[0.2em] mb-2">Run</div>
-                  <button
-                    onClick={handleRunHalt}
-                    disabled={!powerOn}
-                    className={`flex items-center justify-center gap-1 px-2 py-2 rounded font-bold text-[10px] tracking-wide shadow-lg w-full ${
-                      !powerOn
-                        ? 'bg-gray-800 border border-gray-800 cursor-not-allowed opacity-50'
-                        : running
-                          ? 'bg-orange-800 hover:bg-orange-900 border border-orange-900'
-                          : 'bg-gray-700 hover:bg-gray-600 border border-gray-800'
-                    }`}
-                  >
-                    {running ? <Square size={14} /> : <Play size={14} />}
-                    {running ? 'HALT' : 'RUN'}
-                  </button>
-                </div>
-                <div className="border border-gray-800 rounded bg-black/60 p-2 flex-1 min-w-[140px]">
-                  <div className="text-[10px] text-gray-500 uppercase tracking-[0.2em] mb-2">Cycle</div>
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-[10px] text-gray-500 font-mono">Status</div>
+                  <div className="flex flex-col items-center gap-1">
                     <div
                       className={`w-3 h-3 rounded-full border ${
-                        running
-                          ? 'bg-emerald-500 border-emerald-400 shadow-lg shadow-emerald-500/60'
-                          : 'bg-gray-800 border-gray-700'
+                        powerOn
+                          ? 'bg-[#c7862b] border-[#9b6a1f] shadow-[0_0_8px_rgba(199,134,43,0.5)]'
+                          : 'bg-[#c9b898] border-[#8b7a5e]'
                       }`}
                     />
+                    <span className="text-[10px] text-[#6e5e45] font-mono">-15V</span>
                   </div>
-                  <div className="mt-2 text-[10px] text-gray-600 font-mono">
-                    {running ? 'AUTO' : 'HALT'}
+                  <div className="flex flex-col items-center gap-1">
+                    <div
+                      className={`w-3 h-3 rounded-full border ${
+                        powerOn
+                          ? 'bg-[#c7862b] border-[#9b6a1f] shadow-[0_0_8px_rgba(199,134,43,0.5)]'
+                          : 'bg-[#c9b898] border-[#8b7a5e]'
+                      }`}
+                    />
+                    <span className="text-[10px] text-[#6e5e45] font-mono">GND</span>
                   </div>
                 </div>
               </div>
@@ -306,93 +275,80 @@ const FlipChipSimulator = () => {
       </section>
 
       {/* Bottom Section */}
-      <section className="flex-1 overflow-auto bg-gradient-to-br from-gray-900 to-black p-6 relative">
+      <section className="flex-1 overflow-auto bg-gradient-to-br from-[#efe2c7] to-[#dfcca8] p-6 relative">
         <canvas ref={canvasRef} width={1200} height={800} className="absolute top-0 left-0 pointer-events-none" />
 
         <div className="grid gap-4 sm:grid-cols-3 md:grid-cols-6 xl:grid-cols-12 relative z-10">
           {slots.map((card, slotIndex) => (
             <div
               key={slotIndex}
-              className="border-2 border-black bg-gradient-to-b from-gray-900 to-gray-950 p-3 shadow-inner min-h-[280px] flex flex-col"
+              className="border-2 border-[#8b7a5e] bg-gradient-to-b from-[#efe2c7] to-[#e1cea8] p-3 shadow-inner min-h-[280px] flex flex-col"
             >
-              <div className="text-[10px] text-gray-500 uppercase tracking-[0.2em]">
+              <div className="text-[10px] text-[#6e5e45] uppercase tracking-[0.2em]">
                 Slot {slotIndex + 1}
               </div>
               <div className="mt-2 flex-1 flex flex-col gap-3">
                 {slotIndex === 0 ? (
-                  <div className="border-2 border-gray-800 rounded bg-black/70 p-3 h-full">
-                    <div className="text-[10px] font-bold tracking-[0.35em] text-gray-500 mb-3 uppercase">
+                  <div className="border-2 border-[#9b8766] rounded bg-[#ead9b8] p-3 h-full">
+                    <div className="text-[10px] font-bold tracking-[0.35em] text-[#6e5e45] mb-3 uppercase">
                       Clock Card
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="border border-gray-800 rounded bg-black/60 p-2">
-                        <div className="text-[10px] text-gray-500 uppercase tracking-[0.2em] mb-2">Rate</div>
-                        <div className="space-y-2">
-                          <label className="flex items-center gap-2 cursor-pointer text-gray-400 hover:text-gray-300">
-                            <input
-                              type="radio"
-                              name="clockRate"
-                              value="0.25"
-                              checked={clockRate === 0.25}
-                              onChange={(e) => setClockRate(parseFloat(e.target.value))}
-                              className="cursor-pointer"
-                            />
-                            <span className="text-[10px] font-mono">1/4 Hz</span>
-                          </label>
-                          <label className="flex items-center gap-2 cursor-pointer text-gray-400 hover:text-gray-300">
-                            <input
-                              type="radio"
-                              name="clockRate"
-                              value="2"
-                              checked={clockRate === 2}
-                              onChange={(e) => setClockRate(parseFloat(e.target.value))}
-                              className="cursor-pointer"
-                            />
-                            <span className="text-[10px] font-mono">2 Hz</span>
-                          </label>
-                          <label className="flex items-center gap-2 cursor-pointer text-gray-400 hover:text-gray-300">
-                            <input
-                              type="radio"
-                              name="clockRate"
-                              value="10"
-                              checked={clockRate === 10}
-                              onChange={(e) => setClockRate(parseFloat(e.target.value))}
-                              className="cursor-pointer"
-                            />
-                            <span className="text-[10px] font-mono">10 Hz</span>
-                          </label>
+                    <div className="grid gap-2">
+                      <div className="border border-[#9b8766] rounded bg-[#ead9b8] p-2">
+                        <div className="text-[10px] text-[#6e5e45] uppercase tracking-[0.2em] mb-2">Rate</div>
+                        <div className="flex items-start gap-3">
+                          {[
+                            { value: 0.25, label: '1/4 Hz' },
+                            { value: 2, label: '2 Hz' },
+                            { value: 10, label: '10 Hz' },
+                          ].map((rate) => (
+                            <label
+                              key={rate.value}
+                              className="flex flex-col items-center gap-1 cursor-pointer text-[#6e5e45] hover:text-[#3b3325]"
+                            >
+                              <input
+                                type="radio"
+                                name="clockRate"
+                                value={rate.value}
+                                checked={clockRate === rate.value}
+                                onChange={(e) => setClockRate(parseFloat(e.target.value))}
+                                className="h-3 w-3 cursor-pointer appearance-none rounded-full border border-[#8b7a5e] bg-[#f2e7d3] shadow-inner checked:border-[#7a5c2d] checked:bg-[#9b6a1f]"
+                              />
+                              <span className="text-[10px] font-mono">{rate.label}</span>
+                            </label>
+                          ))}
                         </div>
                       </div>
-                      <div className="border border-gray-800 rounded bg-black/60 p-2">
-                        <div className="text-[10px] text-gray-500 uppercase tracking-[0.2em] mb-2">Mode</div>
+                      <div className="border border-[#9b8766] rounded bg-[#ead9b8] p-2">
+                        <div className="text-[10px] text-[#6e5e45] uppercase tracking-[0.2em] mb-2">Mode</div>
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-[10px] text-gray-500 font-mono">Auto</span>
+                          <span className="text-[10px] text-[#6e5e45] font-mono">Auto</span>
                           <div
                             className={`w-3 h-3 rounded-full border ${
                               running
-                                ? 'bg-emerald-500 border-emerald-400 shadow-lg shadow-emerald-500/60'
-                                : 'bg-gray-800 border-gray-700'
+                                ? 'bg-[#5e8a4c] border-[#4c733d] shadow-[0_0_8px_rgba(94,138,76,0.55)]'
+                                : 'bg-[#c9b898] border-[#8b7a5e]'
                             }`}
                           />
                         </div>
-                        <div className="mt-2 text-[10px] text-gray-600 font-mono">
+                        <div className="mt-2 text-[10px] text-[#7a6b52] font-mono">
                           {running ? 'RUNNING' : 'HALTED'}
                         </div>
                       </div>
-                      <div className="border border-gray-800 rounded bg-black/60 p-2">
-                        <div className="text-[10px] text-gray-500 uppercase tracking-[0.2em] mb-2">Ticks</div>
-                        <div className="text-lg font-bold text-amber-400 font-mono">{clockTick}</div>
-                        <div className="text-[10px] text-gray-600 font-mono mt-1">
+                      <div className="border border-[#9b8766] rounded bg-[#ead9b8] p-2">
+                        <div className="text-[10px] text-[#6e5e45] uppercase tracking-[0.2em] mb-2">Ticks</div>
+                        <div className="text-lg font-bold text-[#9b6a1f] font-mono">{clockTick}</div>
+                        <div className="text-[10px] text-[#7a6b52] font-mono mt-1">
                           Cards: {slots.slice(1).filter((s) => s !== null).length} (
                           {slots.slice(1).filter((s) => s !== null).length * 2}{' '}
                           bits)
                         </div>
                       </div>
-                      <div className="border border-gray-800 rounded bg-black/60 p-2">
-                        <div className="text-[10px] text-gray-500 uppercase tracking-[0.2em] mb-2">Reset</div>
+                      <div className="border border-[#9b8766] rounded bg-[#ead9b8] p-2">
+                        <div className="text-[10px] text-[#6e5e45] uppercase tracking-[0.2em] mb-2">Reset</div>
                         <button
                           onClick={handleClockReset}
-                          className="w-full rounded border border-gray-700 bg-gray-800 px-2 py-2 text-[10px] font-bold tracking-wide text-gray-300 hover:bg-gray-700"
+                          className="w-full rounded border border-[#8b7a5e] bg-[#c8b695] px-2 py-2 text-[10px] font-bold tracking-wide text-[#3b3325] hover:bg-[#b9a47f]"
                         >
                           CLEAR TICKS
                         </button>
@@ -401,25 +357,25 @@ const FlipChipSimulator = () => {
                   </div>
                 ) : card ? (
                   <div
-                    className={`bg-gradient-to-b from-blue-950 to-blue-900 border-2 rounded p-3 transition-all shadow-lg h-full ${
+                    className={`bg-gradient-to-b from-[#cbb790] to-[#bba278] border-2 rounded p-3 transition-all shadow-lg h-full ${
                       hoveredBit !== null && Math.floor(hoveredBit / 2) === slotIndex
-                        ? 'border-amber-600 shadow-amber-600/50'
-                        : 'border-blue-800'
+                        ? 'border-[#c7862b] shadow-[0_0_14px_rgba(199,134,43,0.5)]'
+                        : 'border-[#8b7a5e]'
                     }`}
                   >
                     <div className="flex justify-between items-start mb-3">
                       <div>
-                        <div className="font-bold text-blue-200 text-xs tracking-wide">{card.type}</div>
-                        <div className="text-[10px] text-gray-500">Dual J-K Flip-Flop</div>
+                        <div className="font-bold text-[#3b3325] text-xs tracking-wide">{card.type}</div>
+                        <div className="text-[10px] text-[#6e5e45]">Dual J-K Flip-Flop</div>
                         {hoveredBit !== null && Math.floor(hoveredBit / 2) === slotIndex && (
-                          <div className="text-[10px] text-amber-500 mt-1 font-mono">
+                          <div className="text-[10px] text-[#9b6a1f] mt-1 font-mono">
                             ← Bit {hoveredBit} ({hoveredBit % 2 === 0 ? 'FF1' : 'FF2'})
                           </div>
                         )}
                       </div>
                       <button
                         onClick={() => removeCard(slotIndex)}
-                        className="flex h-6 w-6 items-center justify-center rounded border border-red-700 bg-red-600 text-xs font-bold text-white shadow-sm hover:bg-red-500"
+                        className="flex h-6 w-6 items-center justify-center rounded border border-[#7a2e1a] bg-[#a53d22] text-xs font-bold text-[#f7efe2] shadow-sm hover:bg-[#8f341d]"
                         aria-label="Remove card"
                       >
                         X
@@ -427,25 +383,45 @@ const FlipChipSimulator = () => {
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
-                      {['J1', 'K1', 'CLK1', 'Q1', 'J2', 'K2', 'CLK2', 'Q2'].map((pin, pinIndex) => (
-                        <button
-                          key={pinIndex}
-                          onClick={() => handlePinClick(slotIndex, pinIndex)}
-                          className={`text-[10px] px-2 py-1 rounded border font-mono ${
-                            selectedPin?.slot === slotIndex && selectedPin?.pin === pinIndex
-                              ? 'bg-amber-600 border-amber-500 text-black font-bold'
-                              : 'bg-gray-800 border-gray-700 hover:bg-gray-700 text-gray-300'
-                          }`}
-                        >
-                          {pin}
-                        </button>
-                      ))}
+                      <div className="grid gap-2">
+                        {['J1', 'K1', 'CLK1', 'Q1'].map((pin, pinIndex) => (
+                          <button
+                            key={pin}
+                            onClick={() => handlePinClick(slotIndex, pinIndex)}
+                            className={`text-[10px] px-2 py-1 rounded border font-mono ${
+                              selectedPin?.slot === slotIndex && selectedPin?.pin === pinIndex
+                                ? 'bg-[#c7862b] border-[#9b6a1f] text-[#3b3325] font-bold'
+                                : 'bg-[#f2e7d3] border-[#8b7a5e] hover:bg-[#e6d5b5] text-[#3b3325]'
+                            }`}
+                          >
+                            {pin}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="grid gap-2">
+                        {['J2', 'K2', 'CLK2', 'Q2'].map((pin, columnIndex) => {
+                          const pinIndex = columnIndex + 4;
+                          return (
+                            <button
+                              key={pin}
+                              onClick={() => handlePinClick(slotIndex, pinIndex)}
+                              className={`text-[10px] px-2 py-1 rounded border font-mono ${
+                                selectedPin?.slot === slotIndex && selectedPin?.pin === pinIndex
+                                  ? 'bg-[#c7862b] border-[#9b6a1f] text-[#3b3325] font-bold'
+                                  : 'bg-[#f2e7d3] border-[#8b7a5e] hover:bg-[#e6d5b5] text-[#3b3325]'
+                              }`}
+                            >
+                              {pin}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 ) : (
                   <button
                     onClick={() => addCard(slotIndex)}
-                    className="border-2 border-dashed border-gray-700 rounded p-3 h-full hover:border-gray-600 hover:bg-gray-900 text-gray-600 hover:text-gray-500 text-xs"
+                    className="border-2 border-dashed border-[#9b8766] rounded p-3 h-full hover:border-[#8b7a5e] hover:bg-[#e6d5b5] text-[#7a6b52] hover:text-[#3b3325] text-xs"
                   >
                     + Add M113 Card
                   </button>
@@ -455,9 +431,9 @@ const FlipChipSimulator = () => {
           ))}
         </div>
 
-        <div className="mt-6 p-4 bg-black rounded border border-gray-800 max-w-2xl">
-          <div className="font-bold mb-2 text-gray-500 text-sm tracking-wide">INSTRUCTIONS</div>
-          <div className="text-xs text-gray-600 space-y-1 font-mono">
+        <div className="mt-6 p-4 bg-[#e6d5b5] rounded border border-[#8b7a5e] max-w-2xl">
+          <div className="font-bold mb-2 text-[#6e5e45] text-sm tracking-wide">INSTRUCTIONS</div>
+          <div className="text-xs text-[#7a6b52] space-y-1 font-mono">
             <div>• Click "+ Add M113 Card" to insert flip-flop modules</div>
             <div>• Click pins to create wire connections (click first pin, then second pin)</div>
             <div>• Turn POWER ON, then RUN to start the counter</div>
