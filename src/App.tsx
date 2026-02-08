@@ -55,7 +55,10 @@ const FlipChipSimulator = () => {
       for (let moduleIndex = 0; moduleIndex < maxModules; moduleIndex += 1) {
         const slotIndex = moduleIndex + 1;
         const card = slots[slotIndex];
-        if (!card) continue;
+        if (!card) {
+          prevQ2Falling = false;
+          continue;
+        }
 
         const prev = prevStates[slotIndex] ?? { q1: false, q2: false };
         const jk = card.jk ?? { j1: true, k1: true, j2: true, k2: true };
@@ -156,6 +159,13 @@ const FlipChipSimulator = () => {
       }
       setSelectedPin(null);
     }
+  };
+
+  const isChainIntactToSlot = (targetSlotIndex) => {
+    for (let i = 1; i < targetSlotIndex; i += 1) {
+      if (!slots[i]) return false;
+    }
+    return true;
   };
 
   const handleJkToggle = (slotIndex, key) => {
@@ -496,10 +506,11 @@ const FlipChipSimulator = () => {
                         </div>
                         {['CLK1', 'Q1'].map((pin, pinIndex) => {
                           const mainClockHigh = powerOn && clockTick % 2 === 1;
+                          const chainIntact = isChainIntactToSlot(slotIndex);
                           const clk1High =
                             slotIndex === 1
                               ? mainClockHigh
-                              : slotIndex <= maxModules
+                              : slotIndex <= maxModules && chainIntact
                                 ? (cardStates[slotIndex - 1]?.q2 ?? false)
                                 : false;
                           return (
@@ -667,7 +678,7 @@ const FlipChipSimulator = () => {
                         <line x1="40" y1="30" x2="60" y2="30" stroke="#3b3325" strokeWidth="1.5" markerEnd="url(#seqArrow)" />
                         <line x1="90" y1="30" x2="110" y2="30" stroke="#3b3325" strokeWidth="1.5" markerEnd="url(#seqArrow)" />
                         <line x1="140" y1="30" x2="160" y2="30" stroke="#3b3325" strokeWidth="1.5" markerEnd="url(#seqArrow)" />
-                        <line x1="190" y1="30" x2="10" y2="30" stroke="#3b3325" strokeWidth="1.5" markerEnd="url(#seqArrow)" />
+                        <line x1="190" y1="48" x2="10" y2="48" stroke="#3b3325" strokeWidth="1.5" markerEnd="url(#seqArrow)" />
                       </svg>
                     </div>
                   </div>
@@ -705,6 +716,18 @@ const FlipChipSimulator = () => {
             </div>
           </div>
         </div>
+
+        <footer className="mt-6 text-xs text-[#7a6b52] font-mono">
+          Repo:{" "}
+          <a
+            className="underline hover:text-[#3b3325]"
+            href="https://github.com/rsbohn/flip-chip-trainer"
+            rel="noreferrer"
+            target="_blank"
+          >
+            https://github.com/rsbohn/flip-chip-trainer
+          </a>
+        </footer>
       </section>
     </div>
   );
