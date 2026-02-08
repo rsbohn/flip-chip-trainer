@@ -7,7 +7,7 @@ const FlipChipSimulator = () => {
   const [clockTick, setClockTick] = useState(0);
   const [clockRate, setClockRate] = useState(0.25); // Hz
   const [indicators, setIndicators] = useState(Array(12).fill(false));
-  const [slots, setSlots] = useState(Array(12).fill(null));
+  const [slots, setSlots] = useState(Array(9).fill(null));
   const [wires, setWires] = useState([]);
   const [selectedPin, setSelectedPin] = useState(null);
   const [hoveredBit, setHoveredBit] = useState(null);
@@ -438,7 +438,7 @@ const FlipChipSimulator = () => {
             <div>• Click pins to create wire connections (click first pin, then second pin)</div>
             <div>• Turn POWER ON, then RUN to start the counter</div>
             <div>• Select clock rate: 1/4 Hz (slow), 2 Hz (medium), or 10 Hz (fast)</div>
-            <div>• For a 12-bit counter, you'll need 6 M113 cards (2 flip-flops each)</div>
+            <div>• For a full 8-bit counter, you'll need 4 M113 cards (2 flip-flops each)</div>
           </div>
         </div>
       </section>
