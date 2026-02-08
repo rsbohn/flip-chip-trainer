@@ -17,3 +17,4 @@ eb/
 
 # misc
 *.tgz
+tmp/

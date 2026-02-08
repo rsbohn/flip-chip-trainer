@@ -46,6 +46,12 @@ Preview the production build:
 npm run preview
 ```
 
+## Run tests
+
+```bash
+npm test
+```
+
 ## Project structure
 
 - `src/main.tsx` app entry

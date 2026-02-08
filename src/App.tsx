@@ -7,7 +7,10 @@ const FlipChipSimulator = () => {
   const [clockTick, setClockTick] = useState(0);
   const [clockRate, setClockRate] = useState(0.25); // Hz
   const [indicators, setIndicators] = useState(Array(12).fill(false));
-  const [slots, setSlots] = useState(Array(12).fill(null));
+  const [slots, setSlots] = useState(Array(8).fill(null));
+  const [cardStates, setCardStates] = useState(
+    Array.from({ length: 8 }, () => ({ q1: false, q2: false }))
+  );
   const [wires, setWires] = useState([]);
   const [selectedPin, setSelectedPin] = useState(null);
   const [hoveredBit, setHoveredBit] = useState(null);
@@ -26,7 +29,7 @@ const FlipChipSimulator = () => {
 
   // Simulate counter behavior based on actual cards present
   useEffect(() => {
-    if (!powerOn || !running) return;
+    if (!powerOn) return;
 
     // Backplane connects clock to slot 2 (slotIndex 1) only
     // Other slots would need patch wires to receive clock (not implemented yet)
@@ -34,21 +37,47 @@ const FlipChipSimulator = () => {
     
     if (!slot2Card) return; // Slot 2 must have a card to function
 
-    // Slot 2 has 2 flip-flops (bits 0 and 1)
-    // Simple ripple counter simulation for slot 2 only
-    const newIndicators = [...indicators];
-    let carry = true;
+    const applyJk = (prev, j, k, clockEdge) => {
+      if (!clockEdge) return prev;
+      if (j && k) return !prev;
+      if (j && !k) return true;
+      if (!j && k) return false;
+      return prev;
+    };
 
-    for (let i = 0; i < 2 && i < 12; i += 1) {
-      if (carry) {
-        newIndicators[i] = !newIndicators[i];
-        carry = newIndicators[i] === false; // Carry if we wrapped to 0
-      } else {
-        break;
+    const clockHigh = clockTick % 2 === 1;
+    const clockFallingEdge = clockTick > 0 && !clockHigh;
+
+    setCardStates((prevStates) => {
+      const nextStates = [...prevStates];
+
+      const slot2Prev = prevStates[1] ?? { q1: false, q2: false };
+      const slot2Jk = slot2Card.jk ?? { j1: true, k1: true, j2: true, k2: true };
+      const slot2NextQ1 = applyJk(slot2Prev.q1, slot2Jk.j1, slot2Jk.k1, clockFallingEdge);
+      const slot2Q1Falling = slot2Prev.q1 === true && slot2NextQ1 === false;
+      const slot2NextQ2 = applyJk(slot2Prev.q2, slot2Jk.j2, slot2Jk.k2, slot2Q1Falling);
+      nextStates[1] = { q1: slot2NextQ1, q2: slot2NextQ2 };
+
+      const slot3Card = slots[2];
+      if (slot3Card) {
+        const slot3Prev = prevStates[2] ?? { q1: false, q2: false };
+        const slot3Jk = slot3Card.jk ?? { j1: true, k1: true, j2: true, k2: true };
+        const slot2Q2Falling = slot2Prev.q2 === true && slot2NextQ2 === false;
+        const slot3NextQ1 = applyJk(slot3Prev.q1, slot3Jk.j1, slot3Jk.k1, slot2Q2Falling);
+        const slot3Q1Falling = slot3Prev.q1 === true && slot3NextQ1 === false;
+        const slot3NextQ2 = applyJk(slot3Prev.q2, slot3Jk.j2, slot3Jk.k2, slot3Q1Falling);
+        nextStates[2] = { q1: slot3NextQ1, q2: slot3NextQ2 };
       }
-    }
 
-    setIndicators(newIndicators);
+      const newIndicators = Array(12).fill(false);
+      newIndicators[0] = nextStates[1]?.q1 ?? false;
+      newIndicators[1] = nextStates[1]?.q2 ?? false;
+      newIndicators[2] = nextStates[2]?.q1 ?? false;
+      newIndicators[3] = nextStates[2]?.q2 ?? false;
+      setIndicators(newIndicators);
+
+      return nextStates;
+    });
   }, [clockTick]);
 
   const handlePowerToggle = () => {
@@ -56,6 +85,7 @@ const FlipChipSimulator = () => {
     if (powerOn) {
       setRunning(false);
       setIndicators(Array(12).fill(false));
+      setCardStates(Array.from({ length: 8 }, () => ({ q1: false, q2: false })));
       setClockTick(0);
     }
   };
@@ -66,21 +96,39 @@ const FlipChipSimulator = () => {
     }
   };
 
+  const handleStep = () => {
+    if (!powerOn) return;
+    setClockTick((prev) => prev + 1);
+  };
+
   const handleClockReset = () => {
     setClockTick(0);
     setIndicators(Array(12).fill(false));
+    setCardStates(Array.from({ length: 8 }, () => ({ q1: false, q2: false })));
   };
 
   const addCard = (slotIndex) => {
     const newSlots = [...slots];
-    newSlots[slotIndex] = { type: 'M113', id: Date.now() };
+    newSlots[slotIndex] = {
+      type: 'M113',
+      id: Date.now(),
+      jk: { j1: true, k1: true, j2: true, k2: true },
+    };
     setSlots(newSlots);
+
+    const newStates = [...cardStates];
+    newStates[slotIndex] = { q1: false, q2: false };
+    setCardStates(newStates);
   };
 
   const removeCard = (slotIndex) => {
     const newSlots = [...slots];
     newSlots[slotIndex] = null;
     setSlots(newSlots);
+
+    const newStates = [...cardStates];
+    newStates[slotIndex] = { q1: false, q2: false };
+    setCardStates(newStates);
 
     // Remove wires connected to this card
     setWires(wires.filter((w) => w.fromSlot !== slotIndex && w.toSlot !== slotIndex));
@@ -106,6 +154,34 @@ const FlipChipSimulator = () => {
       }
       setSelectedPin(null);
     }
+  };
+
+  const handleJkToggle = (slotIndex, key) => {
+    const newSlots = [...slots];
+    if (!newSlots[slotIndex]) return;
+    newSlots[slotIndex] = {
+      ...newSlots[slotIndex],
+      jk: {
+        ...((newSlots[slotIndex].jk ?? {
+          j1: true,
+          k1: true,
+          j2: true,
+          k2: true,
+        }) as {
+          j1: boolean;
+          k1: boolean;
+          j2: boolean;
+          k2: boolean;
+        }),
+        [key]: !(newSlots[slotIndex].jk ?? {
+          j1: true,
+          k1: true,
+          j2: true,
+          k2: true,
+        })[key],
+      },
+    };
+    setSlots(newSlots);
   };
 
   // Draw wires on canvas
@@ -161,7 +237,9 @@ const FlipChipSimulator = () => {
                       const state = indicators[bitIndex];
                       // Backplane connects clock to slot 2 only (bits 0-1)
                       const slot2Card = slots[1];
-                      const isConnected = slot2Card && bitIndex < 2;
+                      const slot3Card = slots[2];
+                      const isConnected =
+                        (bitIndex < 2 && slot2Card) || (bitIndex >= 2 && bitIndex < 4 && slot3Card);
                       return (
                         <div
                           key={bitIndex}
@@ -206,21 +284,11 @@ const FlipChipSimulator = () => {
                 </button>
               </div>
               <div className="border border-[#9b8766] rounded bg-[#ead9b8] p-2 flex-1 min-w-[120px]">
-                <div className="text-[10px] text-[#6e5e45] uppercase tracking-[0.2em] mb-2">Run</div>
-                <button
-                  onClick={handleRunHalt}
-                  disabled={!powerOn}
-                  className={`flex items-center justify-center gap-1 px-2 py-2 rounded font-bold text-[10px] tracking-wide shadow-lg w-full ${
-                    !powerOn
-                      ? 'bg-[#c8b695] border border-[#8b7a5e] cursor-not-allowed opacity-60 text-[#3b3325]'
-                      : running
-                        ? 'bg-[#d08a2b] hover:bg-[#b67524] border border-[#8f5f1e] text-[#3b3325]'
-                        : 'bg-[#c8b695] hover:bg-[#b9a47f] border border-[#8b7a5e] text-[#3b3325]'
-                  }`}
-                >
-                  {running ? <Square size={14} /> : <Play size={14} />}
-                  {running ? 'HALT' : 'RUN'}
-                </button>
+                <div className="text-[10px] text-[#6e5e45] uppercase tracking-[0.2em] mb-2">Clock</div>
+                <div className="text-lg font-bold text-[#9b6a1f] font-mono">{clockTick}</div>
+                <div className="mt-2 text-[10px] text-[#7a6b52] font-mono">
+                  {running ? 'RUNNING' : 'HALTED'}
+                </div>
               </div>
               <div className="border border-[#9b8766] rounded bg-[#ead9b8] p-2 flex-1 min-w-[180px]">
                 <div className="text-[10px] text-[#6e5e45] uppercase tracking-[0.2em] mb-2">Power</div>
@@ -279,7 +347,7 @@ const FlipChipSimulator = () => {
       <section className="flex-1 overflow-auto bg-gradient-to-br from-[#efe2c7] to-[#dfcca8] p-6 relative">
         <canvas ref={canvasRef} width={1200} height={800} className="absolute top-0 left-0 pointer-events-none" />
 
-        <div className="grid gap-4 sm:grid-cols-3 md:grid-cols-6 xl:grid-cols-12 relative z-10">
+        <div className="grid gap-4 sm:grid-cols-3 md:grid-cols-6 xl:grid-cols-8 relative z-10">
           {slots.map((card, slotIndex) => (
             <div
               key={slotIndex}
@@ -337,14 +405,32 @@ const FlipChipSimulator = () => {
                         </div>
                       </div>
                       <div className="border border-[#9b8766] rounded bg-[#ead9b8] p-2">
-                        <div className="text-[10px] text-[#6e5e45] uppercase tracking-[0.2em] mb-2">Ticks</div>
-                        <div className="text-lg font-bold text-[#9b6a1f] font-mono">{clockTick}</div>
-                        <div className="text-[10px] text-[#7a6b52] font-mono mt-1">
-                          Slot 2: {slots[1] ? '1 card (2 bits)' : 'empty'}
-                        </div>
-                        <div className="text-[10px] text-[#7a6b52] font-mono">
-                          Backplane: CLK→S2
-                        </div>
+                        <div className="text-[10px] text-[#6e5e45] uppercase tracking-[0.2em] mb-2">Run / Step</div>
+                        <button
+                          onClick={handleRunHalt}
+                          disabled={!powerOn}
+                          className={`flex items-center justify-center gap-1 px-2 py-2 rounded font-bold text-[10px] tracking-wide shadow-lg w-full ${
+                            !powerOn
+                              ? 'bg-[#c8b695] border border-[#8b7a5e] cursor-not-allowed opacity-60 text-[#3b3325]'
+                              : running
+                                ? 'bg-[#d08a2b] hover:bg-[#b67524] border border-[#8f5f1e] text-[#3b3325]'
+                                : 'bg-[#c8b695] hover:bg-[#b9a47f] border border-[#8b7a5e] text-[#3b3325]'
+                          }`}
+                        >
+                          {running ? <Square size={14} /> : <Play size={14} />}
+                          {running ? 'HALT' : 'RUN'}
+                        </button>
+                        <button
+                          onClick={handleStep}
+                          disabled={!powerOn || running}
+                          className={`mt-2 w-full rounded border px-2 py-2 text-[10px] font-bold tracking-wide ${
+                            !powerOn || running
+                              ? 'bg-[#c8b695] border-[#8b7a5e] cursor-not-allowed opacity-60 text-[#3b3325]'
+                              : 'bg-[#e6d5b5] border-[#8b7a5e] hover:bg-[#d8c5a1] text-[#3b3325]'
+                          }`}
+                        >
+                          STEP
+                        </button>
                       </div>
                       <div className="border border-[#9b8766] rounded bg-[#ead9b8] p-2">
                         <div className="text-[10px] text-[#6e5e45] uppercase tracking-[0.2em] mb-2">Reset</div>
@@ -386,31 +472,106 @@ const FlipChipSimulator = () => {
 
                     <div className="grid grid-cols-2 gap-2">
                       <div className="grid gap-2">
-                        {['J1', 'K1', 'CLK1', 'Q1'].map((pin, pinIndex) => (
-                          <button
+                        <div className="grid gap-2">
+                          {(['j1', 'k1'] as const).map((key) => {
+                            const jk = card.jk ?? {
+                              j1: true,
+                              k1: true,
+                              j2: true,
+                              k2: true,
+                            };
+                            return (
+                              <button
+                                key={key}
+                                onClick={() => handleJkToggle(slotIndex, key)}
+                                className={`w-full text-[10px] px-2 py-1 rounded border font-mono ${
+                                  jk[key]
+                                    ? 'bg-[#c7862b] border-[#9b6a1f] text-[#3b3325] font-bold'
+                                    : 'bg-[#f2e7d3] border-[#8b7a5e] text-[#6e5e45]'
+                                }`}
+                              >
+                                {key.toUpperCase()}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {['CLK1', 'Q1'].map((pin, pinIndex) => {
+                          const mainClockHigh = powerOn && clockTick % 2 === 1;
+                          const clk1High =
+                            slotIndex === 1
+                              ? mainClockHigh
+                              : slotIndex === 2
+                                ? (cardStates[1]?.q2 ?? false)
+                                : false;
+                          return (
+                            <button
                             key={pin}
-                            onClick={() => handlePinClick(slotIndex, pinIndex)}
+                            onClick={pin === 'Q1' ? undefined : () => handlePinClick(slotIndex, pinIndex + 2)}
+                            disabled={pin === 'Q1'}
                             className={`text-[10px] px-2 py-1 rounded border font-mono ${
-                              selectedPin?.slot === slotIndex && selectedPin?.pin === pinIndex
+                              selectedPin?.slot === slotIndex && selectedPin?.pin === pinIndex + 2
                                 ? 'bg-[#c7862b] border-[#9b6a1f] text-[#3b3325] font-bold'
-                                : 'bg-[#f2e7d3] border-[#8b7a5e] hover:bg-[#e6d5b5] text-[#3b3325]'
+                                : pin === 'Q1' && (cardStates[slotIndex]?.q1 ?? false)
+                                  ? 'bg-[#b14a2b] border-[#9b3c24] text-[#f7efe2] shadow-[0_0_8px_rgba(177,74,43,0.6)]'
+                                  : pin === 'CLK1' && clk1High
+                                    ? 'bg-[#c7862b] border-[#9b6a1f] text-[#3b3325] shadow-[0_0_8px_rgba(199,134,43,0.6)]'
+                                    : pin === 'Q1'
+                                      ? 'bg-[#f2e7d3] border-[#8b7a5e] text-[#3b3325]'
+                                      : 'bg-[#f2e7d3] border-[#8b7a5e] hover:bg-[#e6d5b5] text-[#3b3325]'
                             }`}
                           >
                             {pin}
                           </button>
-                        ))}
+                          );
+                        })}
                       </div>
                       <div className="grid gap-2">
-                        {['J2', 'K2', 'CLK2', 'Q2'].map((pin, columnIndex) => {
-                          const pinIndex = columnIndex + 4;
+                        <div className="grid gap-2">
+                          {(['j2', 'k2'] as const).map((key) => {
+                            const jk = card.jk ?? {
+                              j1: true,
+                              k1: true,
+                              j2: true,
+                              k2: true,
+                            };
+                            return (
+                              <button
+                                key={key}
+                                onClick={() => handleJkToggle(slotIndex, key)}
+                                className={`w-full text-[10px] px-2 py-1 rounded border font-mono ${
+                                  jk[key]
+                                    ? 'bg-[#c7862b] border-[#9b6a1f] text-[#3b3325] font-bold'
+                                    : 'bg-[#f2e7d3] border-[#8b7a5e] text-[#6e5e45]'
+                                }`}
+                              >
+                                {key.toUpperCase()}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {['CLK2', 'Q2'].map((pin, columnIndex) => {
+                          const pinIndex = columnIndex + 6;
+                          const clk2High =
+                            slotIndex === 1
+                              ? (cardStates[1]?.q1 ?? false)
+                              : slotIndex === 2
+                                ? (cardStates[2]?.q1 ?? false)
+                                : false;
                           return (
                             <button
                               key={pin}
-                              onClick={() => handlePinClick(slotIndex, pinIndex)}
+                              onClick={pin === 'Q2' ? undefined : () => handlePinClick(slotIndex, pinIndex)}
+                              disabled={pin === 'Q2'}
                               className={`text-[10px] px-2 py-1 rounded border font-mono ${
                                 selectedPin?.slot === slotIndex && selectedPin?.pin === pinIndex
                                   ? 'bg-[#c7862b] border-[#9b6a1f] text-[#3b3325] font-bold'
-                                  : 'bg-[#f2e7d3] border-[#8b7a5e] hover:bg-[#e6d5b5] text-[#3b3325]'
+                                  : pin === 'Q2' && (cardStates[slotIndex]?.q2 ?? false)
+                                    ? 'bg-[#b14a2b] border-[#9b3c24] text-[#f7efe2] shadow-[0_0_8px_rgba(177,74,43,0.6)]'
+                                    : pin === 'CLK2' && clk2High
+                                      ? 'bg-[#c7862b] border-[#9b6a1f] text-[#3b3325] shadow-[0_0_8px_rgba(199,134,43,0.6)]'
+                                      : pin === 'Q2'
+                                        ? 'bg-[#f2e7d3] border-[#8b7a5e] text-[#3b3325]'
+                                        : 'bg-[#f2e7d3] border-[#8b7a5e] hover:bg-[#e6d5b5] text-[#3b3325]'
                               }`}
                             >
                               {pin}
@@ -418,6 +579,101 @@ const FlipChipSimulator = () => {
                           );
                         })}
                       </div>
+                    </div>
+
+                    <div className="mt-3 border border-[#9b8766] rounded bg-[#ead9b8] px-2 py-2">
+                      <div className="text-[9px] uppercase tracking-[0.2em] text-[#6e5e45] mb-1">
+                        Internal Wiring
+                      </div>
+                      <svg
+                        viewBox="0 0 200 100"
+                        className="w-full h-24"
+                        aria-label="Clock into flip-flops, outputs to lamps"
+                      >
+                        <defs>
+                          <marker
+                            id="arrowHead"
+                            markerWidth="6"
+                            markerHeight="6"
+                            refX="5"
+                            refY="3"
+                            orient="auto"
+                          >
+                            <path d="M0,0 L6,3 L0,6 Z" fill="#3b3325" />
+                          </marker>
+                        </defs>
+                        <rect x="6" y="34" width="36" height="26" rx="3" fill="#f2e7d3" stroke="#8b7a5e" />
+                        <text x="24" y="51" textAnchor="middle" fontSize="10" fill="#3b3325" fontFamily="monospace">
+                          CLK
+                        </text>
+
+                        <rect x="64" y="12" width="40" height="30" rx="3" fill="#e1cea8" stroke="#8b7a5e" />
+                        <text x="84" y="31" textAnchor="middle" fontSize="10" fill="#3b3325" fontFamily="monospace">
+                          FF1
+                        </text>
+                        <rect x="64" y="58" width="40" height="30" rx="3" fill="#e1cea8" stroke="#8b7a5e" />
+                        <text x="84" y="77" textAnchor="middle" fontSize="10" fill="#3b3325" fontFamily="monospace">
+                          FF2
+                        </text>
+
+                        <rect x="140" y="12" width="36" height="24" rx="3" fill="#f2e7d3" stroke="#8b7a5e" />
+                        <text x="158" y="28" textAnchor="middle" fontSize="10" fill="#3b3325" fontFamily="monospace">
+                          L0
+                        </text>
+                        <rect x="140" y="64" width="36" height="24" rx="3" fill="#f2e7d3" stroke="#8b7a5e" />
+                        <text x="158" y="80" textAnchor="middle" fontSize="10" fill="#3b3325" fontFamily="monospace">
+                          L1
+                        </text>
+
+                        <line x1="42" y1="47" x2="64" y2="26" stroke="#3b3325" strokeWidth="2" markerEnd="url(#arrowHead)" />
+                        <line x1="104" y1="26" x2="140" y2="24" stroke="#3b3325" strokeWidth="2" markerEnd="url(#arrowHead)" />
+                        <line x1="104" y1="26" x2="64" y2="74" stroke="#3b3325" strokeWidth="2" markerEnd="url(#arrowHead)" />
+                        <line x1="104" y1="74" x2="140" y2="76" stroke="#3b3325" strokeWidth="2" markerEnd="url(#arrowHead)" />
+                      </svg>
+                    </div>
+
+                    <div className="mt-3 border border-[#9b8766] rounded bg-[#ead9b8] px-2 py-2">
+                      <div className="text-[9px] uppercase tracking-[0.2em] text-[#6e5e45] mb-1">
+                        State Sequence
+                      </div>
+                      <svg viewBox="0 0 200 60" className="w-full h-14" aria-label="Q2 Q1 sequence">
+                        <defs>
+                          <marker
+                            id="seqArrow"
+                            markerWidth="6"
+                            markerHeight="6"
+                            refX="5"
+                            refY="3"
+                            orient="auto"
+                          >
+                            <path d="M0,0 L6,3 L0,6 Z" fill="#3b3325" />
+                          </marker>
+                        </defs>
+                        {[
+                          { label: '00', x: 10 },
+                          { label: '01', x: 60 },
+                          { label: '10', x: 110 },
+                          { label: '11', x: 160 },
+                        ].map((node) => (
+                          <g key={node.label}>
+                            <rect x={node.x} y="18" width="30" height="24" rx="3" fill="#f2e7d3" stroke="#8b7a5e" />
+                            <text
+                              x={node.x + 15}
+                              y="34"
+                              textAnchor="middle"
+                              fontSize="10"
+                              fill="#3b3325"
+                              fontFamily="monospace"
+                            >
+                              {node.label}
+                            </text>
+                          </g>
+                        ))}
+                        <line x1="40" y1="30" x2="60" y2="30" stroke="#3b3325" strokeWidth="1.5" markerEnd="url(#seqArrow)" />
+                        <line x1="90" y1="30" x2="110" y2="30" stroke="#3b3325" strokeWidth="1.5" markerEnd="url(#seqArrow)" />
+                        <line x1="140" y1="30" x2="160" y2="30" stroke="#3b3325" strokeWidth="1.5" markerEnd="url(#seqArrow)" />
+                        <line x1="190" y1="30" x2="10" y2="30" stroke="#3b3325" strokeWidth="1.5" markerEnd="url(#seqArrow)" />
+                      </svg>
                     </div>
                   </div>
                 ) : (
@@ -441,6 +697,17 @@ const FlipChipSimulator = () => {
             <div>• Turn POWER ON, then RUN to start the counter</div>
             <div>• Select clock rate: 1/4 Hz (slow), 2 Hz (medium), or 10 Hz (fast)</div>
             <div>• Patch wiring to connect other slots is not yet implemented</div>
+          </div>
+          <div className="mt-3 border-t border-[#9b8766] pt-3">
+            <div className="font-bold mb-2 text-[#6e5e45] text-sm tracking-wide">
+              BACKPLANE ROUTING
+            </div>
+            <div className="text-xs text-[#7a6b52] space-y-1 font-mono">
+              <div>• CLK → S2:CLK1</div>
+              <div>• S2:Q1 → S2:CLK2</div>
+              <div>• S2:Q2 → S3:CLK1</div>
+              <div>• Rails: GND, +10 V, -15 V to each slot (assumed)</div>
+            </div>
           </div>
         </div>
       </section>

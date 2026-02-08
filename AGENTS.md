@@ -21,6 +21,7 @@
 ## Testing Guidelines
 - No automated test framework is configured yet.
 - If you add tests, prefer colocating near the component (e.g., `src/App.test.tsx`) and document the new command in this file.
+- Test command: `npm test` (runs `tests/m113-harness.cjs`).
 
 ## Commit & Pull Request Guidelines
 - Commit history uses short, imperative summaries (e.g., “enable github pages via action”).
