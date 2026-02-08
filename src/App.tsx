@@ -28,17 +28,18 @@ const FlipChipSimulator = () => {
   useEffect(() => {
     if (!powerOn || !running) return;
 
-    // Count how many M113 cards are installed
-    const installedCards = slots.slice(1).filter((slot) => slot !== null).length;
-    const bitCount = installedCards * 2; // 2 flip-flops per M113
+    // Backplane connects clock to slot 2 (slotIndex 1) only
+    // Other slots would need patch wires to receive clock (not implemented yet)
+    const slot2Card = slots[1]; // Slot 2 is at index 1
+    
+    if (!slot2Card) return; // Slot 2 must have a card to function
 
-    if (bitCount === 0) return; // No cards, no counting
-
-    // Simple ripple counter simulation limited to available bits
+    // Slot 2 has 2 flip-flops (bits 0 and 1)
+    // Simple ripple counter simulation for slot 2 only
     const newIndicators = [...indicators];
     let carry = true;
 
-    for (let i = 0; i < bitCount && i < 12; i += 1) {
+    for (let i = 0; i < 2 && i < 12; i += 1) {
       if (carry) {
         newIndicators[i] = !newIndicators[i];
         carry = newIndicators[i] === false; // Carry if we wrapped to 0
@@ -158,9 +159,9 @@ const FlipChipSimulator = () => {
                     {Array.from({ length: 3 }, (_, offset) => {
                       const bitIndex = groupStart - offset;
                       const state = indicators[bitIndex];
-                      const installedCards = slots.slice(1).filter((slot) => slot !== null).length;
-                      const bitCount = installedCards * 2;
-                      const isConnected = bitIndex < bitCount;
+                      // Backplane connects clock to slot 2 only (bits 0-1)
+                      const slot2Card = slots[1];
+                      const isConnected = slot2Card && bitIndex < 2;
                       return (
                         <div
                           key={bitIndex}
@@ -339,9 +340,10 @@ const FlipChipSimulator = () => {
                         <div className="text-[10px] text-[#6e5e45] uppercase tracking-[0.2em] mb-2">Ticks</div>
                         <div className="text-lg font-bold text-[#9b6a1f] font-mono">{clockTick}</div>
                         <div className="text-[10px] text-[#7a6b52] font-mono mt-1">
-                          Cards: {slots.slice(1).filter((s) => s !== null).length} (
-                          {slots.slice(1).filter((s) => s !== null).length * 2}{' '}
-                          bits)
+                          Slot 2: {slots[1] ? '1 card (2 bits)' : 'empty'}
+                        </div>
+                        <div className="text-[10px] text-[#7a6b52] font-mono">
+                          Backplane: CLK→S2
                         </div>
                       </div>
                       <div className="border border-[#9b8766] rounded bg-[#ead9b8] p-2">
@@ -434,11 +436,11 @@ const FlipChipSimulator = () => {
         <div className="mt-6 p-4 bg-[#e6d5b5] rounded border border-[#8b7a5e] max-w-2xl">
           <div className="font-bold mb-2 text-[#6e5e45] text-sm tracking-wide">INSTRUCTIONS</div>
           <div className="text-xs text-[#7a6b52] space-y-1 font-mono">
-            <div>• Click "+ Add M113 Card" to insert flip-flop modules</div>
-            <div>• Click pins to create wire connections (click first pin, then second pin)</div>
+            <div>• Click "+ Add M113 Card" in Slot 2 to insert a flip-flop module</div>
+            <div>• The backplane automatically connects the clock to Slot 2</div>
             <div>• Turn POWER ON, then RUN to start the counter</div>
             <div>• Select clock rate: 1/4 Hz (slow), 2 Hz (medium), or 10 Hz (fast)</div>
-            <div>• For a 12-bit counter, you'll need 6 M113 cards (2 flip-flops each)</div>
+            <div>• Patch wiring to connect other slots is not yet implemented</div>
           </div>
         </div>
       </section>
