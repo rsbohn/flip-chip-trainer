@@ -15,6 +15,7 @@ const FlipChipSimulator = () => {
   const [selectedPin, setSelectedPin] = useState(null);
   const [hoveredBit, setHoveredBit] = useState(null);
   const canvasRef = useRef(null);
+  const maxModules = 6;
 
   // Clock at selected rate
   useEffect(() => {
@@ -31,8 +32,7 @@ const FlipChipSimulator = () => {
   useEffect(() => {
     if (!powerOn) return;
 
-    // Backplane connects clock to slot 2 (slotIndex 1) only
-    // Other slots would need patch wires to receive clock (not implemented yet)
+    // Backplane connects clock to slot 2 (slotIndex 1) and chains Q2 -> next CLK1
     const slot2Card = slots[1]; // Slot 2 is at index 1
     
     if (!slot2Card) return; // Slot 2 must have a card to function
@@ -50,30 +50,32 @@ const FlipChipSimulator = () => {
 
     setCardStates((prevStates) => {
       const nextStates = [...prevStates];
+      let prevQ2Falling = clockFallingEdge;
 
-      const slot2Prev = prevStates[1] ?? { q1: false, q2: false };
-      const slot2Jk = slot2Card.jk ?? { j1: true, k1: true, j2: true, k2: true };
-      const slot2NextQ1 = applyJk(slot2Prev.q1, slot2Jk.j1, slot2Jk.k1, clockFallingEdge);
-      const slot2Q1Falling = slot2Prev.q1 === true && slot2NextQ1 === false;
-      const slot2NextQ2 = applyJk(slot2Prev.q2, slot2Jk.j2, slot2Jk.k2, slot2Q1Falling);
-      nextStates[1] = { q1: slot2NextQ1, q2: slot2NextQ2 };
+      for (let moduleIndex = 0; moduleIndex < maxModules; moduleIndex += 1) {
+        const slotIndex = moduleIndex + 1;
+        const card = slots[slotIndex];
+        if (!card) continue;
 
-      const slot3Card = slots[2];
-      if (slot3Card) {
-        const slot3Prev = prevStates[2] ?? { q1: false, q2: false };
-        const slot3Jk = slot3Card.jk ?? { j1: true, k1: true, j2: true, k2: true };
-        const slot2Q2Falling = slot2Prev.q2 === true && slot2NextQ2 === false;
-        const slot3NextQ1 = applyJk(slot3Prev.q1, slot3Jk.j1, slot3Jk.k1, slot2Q2Falling);
-        const slot3Q1Falling = slot3Prev.q1 === true && slot3NextQ1 === false;
-        const slot3NextQ2 = applyJk(slot3Prev.q2, slot3Jk.j2, slot3Jk.k2, slot3Q1Falling);
-        nextStates[2] = { q1: slot3NextQ1, q2: slot3NextQ2 };
+        const prev = prevStates[slotIndex] ?? { q1: false, q2: false };
+        const jk = card.jk ?? { j1: true, k1: true, j2: true, k2: true };
+
+        const nextQ1 = applyJk(prev.q1, jk.j1, jk.k1, prevQ2Falling);
+        const q1Falling = prev.q1 === true && nextQ1 === false;
+        const nextQ2 = applyJk(prev.q2, jk.j2, jk.k2, q1Falling);
+        const q2Falling = prev.q2 === true && nextQ2 === false;
+
+        nextStates[slotIndex] = { q1: nextQ1, q2: nextQ2 };
+        prevQ2Falling = q2Falling;
       }
 
       const newIndicators = Array(12).fill(false);
-      newIndicators[0] = nextStates[1]?.q1 ?? false;
-      newIndicators[1] = nextStates[1]?.q2 ?? false;
-      newIndicators[2] = nextStates[2]?.q1 ?? false;
-      newIndicators[3] = nextStates[2]?.q2 ?? false;
+      for (let moduleIndex = 0; moduleIndex < maxModules; moduleIndex += 1) {
+        const slotIndex = moduleIndex + 1;
+        const base = moduleIndex * 2;
+        newIndicators[base] = nextStates[slotIndex]?.q1 ?? false;
+        newIndicators[base + 1] = nextStates[slotIndex]?.q2 ?? false;
+      }
       setIndicators(newIndicators);
 
       return nextStates;
@@ -235,11 +237,8 @@ const FlipChipSimulator = () => {
                     {Array.from({ length: 3 }, (_, offset) => {
                       const bitIndex = groupStart - offset;
                       const state = indicators[bitIndex];
-                      // Backplane connects clock to slot 2 only (bits 0-1)
-                      const slot2Card = slots[1];
-                      const slot3Card = slots[2];
-                      const isConnected =
-                        (bitIndex < 2 && slot2Card) || (bitIndex >= 2 && bitIndex < 4 && slot3Card);
+                      const slotIndex = Math.floor(bitIndex / 2) + 1;
+                      const isConnected = slotIndex <= maxModules && slots[slotIndex];
                       return (
                         <div
                           key={bitIndex}
@@ -446,7 +445,7 @@ const FlipChipSimulator = () => {
                 ) : card ? (
                   <div
                     className={`bg-gradient-to-b from-[#cbb790] to-[#bba278] border-2 rounded p-3 transition-all shadow-lg h-full ${
-                      hoveredBit !== null && Math.floor(hoveredBit / 2) === slotIndex
+                      hoveredBit !== null && Math.floor(hoveredBit / 2) + 1 === slotIndex
                         ? 'border-[#c7862b] shadow-[0_0_14px_rgba(199,134,43,0.5)]'
                         : 'border-[#8b7a5e]'
                     }`}
@@ -455,7 +454,7 @@ const FlipChipSimulator = () => {
                       <div>
                         <div className="font-bold text-[#3b3325] text-xs tracking-wide">{card.type}</div>
                         <div className="text-[10px] text-[#6e5e45]">Dual J-K Flip-Flop</div>
-                        {hoveredBit !== null && Math.floor(hoveredBit / 2) === slotIndex && (
+                        {hoveredBit !== null && Math.floor(hoveredBit / 2) + 1 === slotIndex && (
                           <div className="text-[10px] text-[#9b6a1f] mt-1 font-mono">
                             ← Bit {hoveredBit} ({hoveredBit % 2 === 0 ? 'FF1' : 'FF2'})
                           </div>
@@ -500,8 +499,8 @@ const FlipChipSimulator = () => {
                           const clk1High =
                             slotIndex === 1
                               ? mainClockHigh
-                              : slotIndex === 2
-                                ? (cardStates[1]?.q2 ?? false)
+                              : slotIndex <= maxModules
+                                ? (cardStates[slotIndex - 1]?.q2 ?? false)
                                 : false;
                           return (
                             <button
@@ -552,11 +551,7 @@ const FlipChipSimulator = () => {
                         {['CLK2', 'Q2'].map((pin, columnIndex) => {
                           const pinIndex = columnIndex + 6;
                           const clk2High =
-                            slotIndex === 1
-                              ? (cardStates[1]?.q1 ?? false)
-                              : slotIndex === 2
-                                ? (cardStates[2]?.q1 ?? false)
-                                : false;
+                            slotIndex <= maxModules ? (cardStates[slotIndex]?.q1 ?? false) : false;
                           return (
                             <button
                               key={pin}
@@ -692,11 +687,11 @@ const FlipChipSimulator = () => {
         <div className="mt-6 p-4 bg-[#e6d5b5] rounded border border-[#8b7a5e] max-w-2xl">
           <div className="font-bold mb-2 text-[#6e5e45] text-sm tracking-wide">INSTRUCTIONS</div>
           <div className="text-xs text-[#7a6b52] space-y-1 font-mono">
-            <div>• Click "+ Add M113 Card" in Slot 2 to insert a flip-flop module</div>
-            <div>• The backplane automatically connects the clock to Slot 2</div>
+            <div>• Click "+ Add M113 Card" in Slots 2–7 to insert flip-flop modules</div>
+            <div>• The backplane automatically chains clocks across installed modules</div>
             <div>• Turn POWER ON, then RUN to start the counter</div>
             <div>• Select clock rate: 1/4 Hz (slow), 2 Hz (medium), or 10 Hz (fast)</div>
-            <div>• Patch wiring to connect other slots is not yet implemented</div>
+            <div>• One slot remains unused</div>
           </div>
           <div className="mt-3 border-t border-[#9b8766] pt-3">
             <div className="font-bold mb-2 text-[#6e5e45] text-sm tracking-wide">
@@ -704,8 +699,8 @@ const FlipChipSimulator = () => {
             </div>
             <div className="text-xs text-[#7a6b52] space-y-1 font-mono">
               <div>• CLK → S2:CLK1</div>
-              <div>• S2:Q1 → S2:CLK2</div>
-              <div>• S2:Q2 → S3:CLK1</div>
+              <div>• Each module: Q1 → CLK2 (same slot)</div>
+              <div>• Chain: Q2 → next slot CLK1 (S2→S3→S4→S5→S6→S7)</div>
               <div>• Rails: GND, +10 V, -15 V to each slot (assumed)</div>
             </div>
           </div>
